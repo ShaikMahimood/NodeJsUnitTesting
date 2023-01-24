@@ -1,7 +1,7 @@
 const Users = require("../model/user");
 
-function insertUsers(params) {
-  return new Promise((resolve, reject) => {
+async function insertUsers(params) {
+  return new Promise(async (resolve, reject) => {
     Users.insertMany(params, function (err, result) {
       if (!err) {
         resolve(result);
@@ -22,58 +22,45 @@ function getUsers() {
   });
 }
 
-function aggr(params) {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const { page, limit } = params;
-      const result = await Users.aggregate([
-        {
-          $facet: {
-            users: [
-              {
-                $lookup: {
-                  from: "posts",
-                  localField: "_id",
-                  foreignField: "userId",
-                  pipeline: [{ $count: "count" }],
-                  as: "posts",
-                },
-              },
-              {
-                $addFields: {
-                  posts: { $sum: "$posts.count" },
-                },
-              },
-              { $sort: { _id: 1 } },
-              {
-                $skip: (page - 1) * limit,
-              },
-              {
-                $limit: limit,
-              },
-            ],
-            totalDocs: [
-              {
-                $count: "count",
-              },
-            ],
-          },
-        },
-      ]);
-      resolve(result);
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
-
 async function getUserPosts(req, res) {
   try {
-    const page = parseInt(req.query.page || 1),
-      limit = parseInt(req.query.limit || 10);
-
-    const params = { page, limit };
-    const result = await aggr(params);
+    const page = parseInt(req.query.page) || 1,
+      limit = parseInt(req.query.limit) || 2;
+      
+    const result = await Users.aggregate([
+      {
+        $facet: {
+          users: [
+            {
+              $lookup: {
+                from: "posts",
+                localField: "_id",
+                foreignField: "userId",
+                pipeline: [{ $count: "count" }],
+                as: "posts",
+              },
+            },
+            {
+              $addFields: {
+                posts: { $sum: "$posts.count" },
+              },
+            },
+            { $sort: { _id: 1 } },
+            {
+              $skip: (page - 1) * limit,
+            },
+            {
+              $limit: limit,
+            },
+          ],
+          totalDocs: [
+            {
+              $count: "count",
+            },
+          ],
+        },
+      },
+    ]);
 
     if (!result.length) throw "Users Data Not Found!";
     const totalDocs = result[0].totalDocs[0].count;
@@ -82,17 +69,17 @@ async function getUserPosts(req, res) {
       totalDocs,
       limit,
       page,
-      totalPages: totalDocs / limit,
+      totalPages: Math.ceil(totalDocs/limit),
       pagingCounter: (page - 1) * limit + 1,
       hasPrevPage: page - 1 ? true : false,
-      hasNextPage: page - limit ? true : false,
+      hasNextPage: (page * limit) < totalDocs ? true : false,
       prevPage: page - 1 ? page - 1 : null,
-      nextPage: page - limit ? page + 1 : null,
+      nextPage: (page * limit) < totalDocs ? page + 1 : null,
     };
     const response = { users, pagination };
-    res.status(200).json({ data: response });
+    res.status(200).json({ status: "Success", data: response });
   } catch (error) {
-    res.status(400).json({ error: error });
+    res.status(400).json({ status: "Error :", error: error });
   }
 }
 

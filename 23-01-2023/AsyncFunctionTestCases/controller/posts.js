@@ -1,11 +1,13 @@
 const Posts = require("../model/post");
 
 function insertPosts(params) {
-  return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
     Posts.insertMany(params, function (err, result) {
       if (!err) {
         resolve(result);
-      } else return reject(err);
+      } else { 
+        return reject(err);
+      }
     });
   });
 }

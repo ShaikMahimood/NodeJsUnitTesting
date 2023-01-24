@@ -1,6 +1,9 @@
-const { mongoose } = require("../db/db");
+const mongoose = require("mongoose");
 const { getUsers, insertUsers } = require("../controller/user");
 const { insertPosts } = require("../controller/posts");
+
+const request = require("supertest");
+const app = require("../app");
 
 beforeAll(async () => {
   const url = `mongodb://localhost:27017/test`;
@@ -16,6 +19,12 @@ const users = [
   },
   {
     name: "Shion",
+  },
+  {
+    name: "Massi da Rocha",
+  },
+  {
+    name: "Benito Vega",
   },
 ];
 
@@ -35,10 +44,10 @@ const posts = [
 
 const userId = [];
 
-describe("Test", function () {
+describe("Unit Testing for Functions", function () {
   beforeEach(async function () {
     await insertUsers(users).then((result) => {
-      expect(result).toHaveLength(3);
+      expect(result).toHaveLength(5);
       expect(result).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -54,7 +63,7 @@ describe("Test", function () {
       result.map((user) => {
         if (!userId.includes(user._id)) userId.push(user._id);
       });
-      expect(result).toHaveLength(3);
+      expect(result).toHaveLength(5);
       expect(result).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -66,7 +75,7 @@ describe("Test", function () {
   });
 
   test("UserId test", async () => {
-    expect(userId).toHaveLength(3);
+    expect(userId).toHaveLength(5);
   });
 
   test("Insert Posts for Users", async () => {
@@ -87,6 +96,58 @@ describe("Test", function () {
         );
       });
     }
+  });
+
+  it("Get Users", async () => {
+    const res = await request(app).get("/users");
+    expect(res.statusCode).toBe(200);
+    expect(res.body.status).toEqual("Success");
+    expect(res.body.data.users).toHaveLength(2);
+    expect(res.body.data.users).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: expect.any(String),
+          posts: expect.any(Number),
+        }),
+      ])
+    );
+    expect(res.body.data.pagination).toEqual({
+      totalDocs: 5,
+      limit: 2,
+      page: 1,
+      totalPages: 3,
+      pagingCounter: 1,
+      hasPrevPage: false,
+      hasNextPage: true,
+      prevPage: null,
+      nextPage: 2
+    });
+  });
+  it("Get Users", async () => {
+    const res = await request(app).get("/users?page=2&limit=2");
+    console.log(res.body);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.status).toEqual("Success");
+    expect(res.body.data.users).toHaveLength(2);
+    expect(res.body.data.users).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: expect.any(String),
+          posts: expect.any(Number),
+        }),
+      ])
+    );
+    expect(res.body.data.pagination).toEqual({
+      totalDocs: 5,
+      limit: 2,
+      page: 2,
+      totalPages: 3,
+      pagingCounter: 3,
+      hasPrevPage: true,
+      hasNextPage: true,
+      prevPage: 1,
+      nextPage: 3
+    });
   });
 });
 
