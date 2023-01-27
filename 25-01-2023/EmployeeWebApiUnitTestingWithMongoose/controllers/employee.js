@@ -3,7 +3,7 @@ let router = express.Router();
 
 const { getEmployee, getEmployeeById, InsertEmployee, updateEmployeeById, deleteEmployeeById } = require('../services/employee');
 
-// localhost:4000/employees/
+// localhost:4040/employees/
 router.get('/', getEmployee);
 
 router.post('/', InsertEmployee);

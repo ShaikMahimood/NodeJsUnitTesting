@@ -1,17 +1,5 @@
 const Employee = require("../models/employee");
 
-function getEmployee(req, res) {
-  Employee.find()
-    .then((employee) => {
-      if (!employee.length) throw 'Employee Data is Not Found!';
-      res.status(200).json({ employees: employee });
-    })
-    .catch((err) => {
-      return res.status(400).send({
-        message: err
-      });
-    });
-}
 
 function InsertEmployee(req, res) {
   try {
@@ -44,15 +32,28 @@ function InsertEmployee(req, res) {
   }
 }
 
+function getEmployee(req, res) {
+  Employee.find()
+    .then((employee) => {
+      if (!employee.length) throw 'Employee Data is Not Found!';
+      res.status(200).json({ employee });
+    })
+    .catch((err) => {
+      return res.status(400).send({
+        message: err
+      });
+    });
+}
+
 function getEmployeeById(req, res) {
-  const empId = { empId: req.params.empId };
-  Employee.find(empId, (err, employee) => {
+  const empId = req.params.empId;
+  Employee.find({ empId: empId }, (err, employee) => {
     if (err) res.json(err.message);
-    else if (employee == "")
+    else if (!employee.length)
       res
-        .status(400)
-        .json("Cannot find an Employee with the empId: " + req.params.empId);
-    else res.status(200).json({ employee: employee });
+        .status(404)
+        .json({ message: "Cannot find an Employee with the empId: " + req.params.empId });
+    else res.status(200).json({ employee });
   });
 }
 
@@ -63,54 +64,35 @@ function updateEmployeeById(req, res) {
   } = req;
 
   const emp = {
-    $set: {
-      name,
-      position,
-      office,
-      location,
-    },
+    name,
+    position,
+    office,
+    location,
   };
-  Employee.findOneAndUpdate(empId, emp, { new: true })
-    .then((employee) => {
-      if (!employee) {
-        return res.status(400).send({
-          message: "Employee not found with id " + req.params.empId,
-        });
-      }
-      res.status(200).send(emp);
-    })
-    .catch((err) => {
-      return res.status(400).send({
-        message:
-          "Error updating Employee with id : " +
-          req.params.empId +
-          " Error: " +
-          err,
-      });
-    });
+  Employee.findOneAndUpdate({empId: empId}, emp, {new: true}, (err, updatedEmployee) => {
+    if (err) {
+      return res.status(500).send({ message: 'Error updating employee' });
+    }
+  
+    // return a response with the updated employee details
+    if (updatedEmployee) {
+      res.status(200).send({ message: 'Employee successfully updated', employee: updatedEmployee });
+    } else {
+      res.status(404).send({ message: 'Error updating employee, not found'});
+    } 
+  });
 }
 
 function deleteEmployeeById(req, res) {
-  const empId = { empId: req.params.empId };
+  const { empId } = req.params;
 
-  Employee.findOneAndDeconste(empId)
-    .then((employee) => {
-      if (employee) {
-        return res.status(200).send({
-          message: "Employee Delete with the empId: " + req.params.empId,
-        });
-      }
-      return res.status(400).send({
-        message: "Employee not found with id " + req.params.empId,
-      });
-    })
-    .catch((err) => {
-      return res.status(400).send({
-        message:
-          "Error in Delete Employee : " + req.params.empId + " Error: " + err,
-      });
-    });
-}
+  Employee.findOneAndDelete({ empId: empId }, function(err, employee) {
+    if (err) return res.status(400).json({ error: err });
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
+
+    return res.status(200).json({ message: "Employee deleted successfully" });
+  });
+};
 
 module.exports = {
   getEmployee,
