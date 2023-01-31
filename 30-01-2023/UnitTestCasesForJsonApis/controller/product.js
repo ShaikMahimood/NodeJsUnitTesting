@@ -1,5 +1,5 @@
 
-const { insert, get } = require('../services/product');
+const { insert, get, getById, update } = require('../services/product');
 
 function insertProduct(req, res) {
     try{
@@ -29,4 +29,27 @@ function getProducts(req, res) {
         });
 }
 
-module.exports = { getProducts, insertProduct }
+function getProductById(req, res) {
+    const id = req.params.id;
+
+    getById(id)
+        .then((product) => {
+            res.status(200).json(product);
+        })
+        .catch((err) => {
+            res.status(404).json({ message: err });
+        });
+}
+
+function updateProduct(req, res) {
+  const productParams = req.body;
+  update(productParams)
+    .then(data => {
+      res.status(200).json({ data });
+    })
+    .catch(err => {
+      res.status(400).json({ message: err });
+    })  
+}
+
+module.exports = { getProducts, insertProduct, getProductById, updateProduct }

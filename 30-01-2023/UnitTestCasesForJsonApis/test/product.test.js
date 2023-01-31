@@ -1,7 +1,21 @@
 const request = require('supertest');
 const app = require('../app');
+const fs = require('fs');
+const products = './asserts/products.json';
 
-const products = require('../asserts/products.json');
+beforeAll(() => {
+    return new Promise((resolve, reject) => {
+        fs.readFile(products, (err, data) => {
+            if (err) reject(err);
+            let json = JSON.parse(data);
+            json.length = 0;
+            fs.writeFile(products, JSON.stringify(json), (err) => {
+                if (err) reject(err);
+                resolve();  // resolves the promise with no parameters 
+            });
+        });
+    });
+});
 
 //getAllProducts Test Case to test product before inseted data in json file
 describe('getAllProducts Test Cases', () => {
@@ -10,7 +24,7 @@ describe('getAllProducts Test Cases', () => {
             .get('/products')   //GET request to get the products from the API endpoint  
             .then(response => {    //the response should contain a message with the error details 
                 expect(response.statusCode).toBe(400);   //asserts that the status code is 400 for this specific case  
-                expect(response.body.message).toBeDefined();  //asserts that there is a message defined in the response body containing details about the error   
+                expect(response.body.message).toEqual('No products found'); // Message value should be "No products found"  
                 done();   //tells Jest that the test is done so it can finish running it  
             });
     });
@@ -28,6 +42,7 @@ describe('insertProduct Test Cases', () => {
         expect(res.statusCode).toBe(200);
         expect(res.body).toEqual([{ "id": 1, "name": "Test Product", "price": 10 }]);
     });
+    
     test('should throw error if name and price is missing', async () => {
 
         const body = {};
@@ -51,3 +66,49 @@ describe('getAllProducts Test Cases', () => {
             });
     });
 })
+
+describe('Get Product By Id Test Cases', () => {
+    test('should retrieve the product with the given ID from the products array', async () => {
+        const id = '1';
+
+        const response = await request(app).get(`/products/${id}`);
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body).toEqual({ "id": 1, "name": "Test Product", "price": 10 });  // expected value 
+    });
+    test('should return a 404 status code if the product is not found', async () => {
+        const id = '123';
+
+        const response = await request(app).get(`/products/${id}`);
+
+        expect(response.statusCode).toBe(404);   // Not Found status code expected to be returned if product id does not exist in the database
+        expect(response.body.message).toEqual('Product not found'); // Message value should be "Product not found"  
+    });
+});
+
+describe('updateProduct Text Cases', () => {
+    test('should update the product successfully', async () => {
+        const response = await request(app)
+            .put('/products')
+            .send({ id: 1, name: 'iPhone 14' });
+
+        expect(response.status).toBe(200);
+        expect(response.body.data).toEqual([{ "id": 1, "name": "iPhone 14", "price": 10 }]);
+    });
+
+    test('should return an error if no product is provided', async () => {
+        const response = await request(app)
+            .put('/products');
+
+        expect(response.status).toBe(400);   // expected 500 status code for error response 
+        expect(response.body.message).toBeDefined(); // expecting error to be defined in response body    
+    });
+
+    test('should return a 404 status code if the product is not found', async () => {
+        const response = await request(app)
+            .put('/products').send({ id: 1234, name: 'iPhone 13' });
+
+        expect(response.status).toBe(400);   // expected 500 status code for error response 
+        expect(response.body.message).toEqual('Product 1234 is not found'); // Message value should be "Product not found"  
+    });
+});
