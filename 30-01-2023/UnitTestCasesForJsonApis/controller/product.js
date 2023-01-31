@@ -1,5 +1,5 @@
 
-const { insert, get, getById, update } = require('../services/product');
+const { insert, get, getById, update, deleteById } = require('../services/product');
 
 function insertProduct(req, res) {
     try{
@@ -52,4 +52,21 @@ function updateProduct(req, res) {
     })  
 }
 
-module.exports = { getProducts, insertProduct, getProductById, updateProduct }
+function deleteProduct(req, res) {
+    const { id } = req.params;
+
+    deleteById(id)
+        .then(response => {
+            if (response) {
+                res.status(200).json({
+                    message: `Product ${id} was deleted succesfully`,
+                });
+            } else {
+                res.status(404).json({ message: `Product ${id} was not found` });  
+            } 
+
+        }) 
+        .catch(err => res.status(500).json({ error: err })); 
+};
+
+module.exports = { getProducts, insertProduct, getProductById, updateProduct, deleteProduct }

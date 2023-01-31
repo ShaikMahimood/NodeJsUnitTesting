@@ -1,6 +1,7 @@
 const request = require('supertest');
 const app = require('../app');
 const fs = require('fs');
+const { deleteProduct } = require('../controller/product');
 const products = './asserts/products.json';
 
 beforeAll(() => {
@@ -19,9 +20,9 @@ beforeAll(() => {
 
 //getAllProducts Test Case to test product before inseted data in json file
 describe('getAllProducts Test Cases', () => {
-    test('should return a 400 error if there is a problem', done => {  //this test mocks an error that could occur when trying to get the products from the database 
-        request(app)   //it should return a 400 status code in this case 
-            .get('/products')   //GET request to get the products from the API endpoint  
+    test('should return a 400 error if there is a problem', done => {  
+        request(app)   
+            .get('/products')   
             .then(response => {    //the response should contain a message with the error details 
                 expect(response.statusCode).toBe(400);   //asserts that the status code is 400 for this specific case  
                 expect(response.body.message).toEqual('No products found'); // Message value should be "No products found"  
@@ -42,7 +43,6 @@ describe('insertProduct Test Cases', () => {
         expect(res.statusCode).toBe(200);
         expect(res.body).toEqual([{ "id": 1, "name": "Test Product", "price": 10 }]);
     });
-    
     test('should throw error if name and price is missing', async () => {
 
         const body = {};
@@ -77,7 +77,7 @@ describe('Get Product By Id Test Cases', () => {
         expect(response.body).toEqual({ "id": 1, "name": "Test Product", "price": 10 });  // expected value 
     });
     test('should return a 404 status code if the product is not found', async () => {
-        const id = '123';
+        const id = '0';
 
         const response = await request(app).get(`/products/${id}`);
 
@@ -103,12 +103,43 @@ describe('updateProduct Text Cases', () => {
         expect(response.status).toBe(400);   // expected 500 status code for error response 
         expect(response.body.message).toBeDefined(); // expecting error to be defined in response body    
     });
-
     test('should return a 404 status code if the product is not found', async () => {
         const response = await request(app)
-            .put('/products').send({ id: 1234, name: 'iPhone 13' });
+            .put('/products').send({ id: 0, name: 'iPhone 13' });
 
         expect(response.status).toBe(400);   // expected 500 status code for error response 
-        expect(response.body.message).toEqual('Product 1234 is not found'); // Message value should be "Product not found"  
+        expect(response.body.message).toEqual('Product 0 was not found'); // Message value should be "Product not found"  
+    });
+});
+
+describe('deleteProduct Test Cases', () => {
+    it('should successfully delete a product', () => {
+        const request = { params: { id: 1 } }; // sample request object
+        const response = {
+            status: (code) => {
+                expect(code).toBe(200); // assert on the response code
+                return {
+                    json: (data) => { // assert on the response body data 
+                        expect(data.message).toBe(`Product 1 was deleted succesfully`);
+                    }
+                }
+            }
+        };
+        deleteProduct(request, response); // call function to be tested  
+    });
+
+    it('should not delete a non-existent product', () => {
+        const request = { params: { id: 0 } }; // sample request object
+        const response = {
+            status: (code) => {  // assert on the response code  
+                expect(code).toBe(404);
+                return {
+                    json: (data) => { // assert on the response body data  
+                        expect(data.message).toBe(`Product 0 was not found`);
+                    }
+                }
+            }
+        };
+        deleteProduct(request, response); // call function to be tested    
     });
 });

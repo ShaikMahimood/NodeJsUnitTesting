@@ -72,9 +72,8 @@ function update(productParams) {
             } else {
                 let product = JSON.parse(data);
                 product.find(p => {
-                    if (p.id != id) {
-                        reject(`Product ${id} is not found`);
-                    }
+                    if (p.id != id)
+                        reject(`Product ${id} was not found`);
                 });
                 // find the product with the given id and update its fields 
                 const updatedData = await product.map(product => {
@@ -85,7 +84,6 @@ function update(productParams) {
                     }
                     return product;
                 });
-
                 fs.writeFile(products, JSON.stringify(updatedData), (err) => {
                     if (err) {
                         reject(err);
@@ -93,10 +91,32 @@ function update(productParams) {
                         resolve(updatedData);
                     }
                 });
-
             }
         });
     });
 }
 
-module.exports = { insert, get, getById, update };
+function deleteById(id) {
+    return new Promise((resolve, reject) => {
+        fs.readFile(products, (err, data) => {
+            if (err) {
+                reject(err);
+            } else {
+                const product = JSON.parse(data);
+                const filterProducts = product.filter(p => p.id != id);
+
+                if(product.length == filterProducts.length) resolve(false); 
+                
+                fs.writeFile(products, JSON.stringify(filterProducts), (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(true);
+                    }
+                });
+            }
+        });
+    });
+}
+
+module.exports = { insert, get, getById, update, deleteById };
